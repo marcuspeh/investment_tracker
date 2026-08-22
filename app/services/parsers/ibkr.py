@@ -37,15 +37,8 @@ from typing import Any
 from app.services.parsers.base import BaseParser, ParsedTrade, ParserError
 from app.utils.timezone import SGT, UTC
 
-#: Exact sender for IBKR fill notification emails. IBKR sends fills only
-#: from ``TradingAssistant@interactivebrokers.com`` — the same domain
-#: also sends marketing/margin/dividend emails from other local-parts
-#: (e.g. ``noreply``, ``donotreply``), so we match the local-part too.
-#:
-#: Comparison is case-sensitive and whitespace-trimmed; IBKR's
-#: ``From:`` header always carries the address verbatim, so a
-#: byte-for-byte match is the right strictness.
-IBKR_FROM_ADDRESS = "tradingassistant@interactivebrokers.com"
+#: Exact sender for IBKR fill emails. Compared byte-for-byte.
+IBKR_FROM_ADDRESS = "TradingAssistant@interactivebrokers.com"
 
 #: Summary line pattern. Captures (side, quantity, symbol, price, account_id).
 #: Group 1: BOUGHT / SOLD
@@ -86,12 +79,9 @@ class IBKRParser(BaseParser):
     name = "IBKR"
 
     def can_parse(self, email: dict[str, Any]) -> bool:
-        from_ = (email.get("from", "") or "").lower()
+        from_ = (email.get("from", "") or "").strip()
         subject = email.get("subject", "") or ""
         body = email.get("body", "") or ""
-        # Sender must be exactly TradingAssistant@interactivebrokers.com —
-        # case-sensitive, byte-for-byte. Other local-parts on the same
-        # domain are margin/dividend/marketing emails — never fills.
         if from_ != IBKR_FROM_ADDRESS:
             return False
         # Final discriminator: must contain a BOUGHT/SOLD summary line.

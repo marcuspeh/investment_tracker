@@ -28,10 +28,10 @@ def _parse_email(text: str) -> dict:
             elif line.startswith("From: "):
                 from_ = line[len("From: ") :]
             elif line.startswith("Date: "):
-                # Very forgiving: store as ISO; if it parses, attach UTC tz.
                 raw = line[len("Date: ") :].strip()
                 try:
                     dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+                    # Naive timestamps get treated as UTC.
                     if dt.tzinfo is None:
                         dt = dt.replace(tzinfo=timezone.utc)
                     date = dt
@@ -79,19 +79,11 @@ class TestIBKRParserCanParse:
         assert self.parser.can_parse(email) is False
 
     def test_cannot_parse_margin_notice_from_ibkr(self):
-        # Margin notices come from a different local-part on the IBKR
-        # domain (noreply@), not TradingAssistant@. The parser must
-        # reject based on sender alone — the body has no fill line, but
-        # we shouldn't even get there.
         email = _parse_email(_load("IBKR margin notice.txt"))
         assert email["from"] == "noreply@interactivebrokers.com"
         assert self.parser.can_parse(email) is False
 
     def test_cannot_parse_when_sender_local_part_differs(self):
-        # Subject contains a valid BOUGHT/SOLD summary line, but the
-        # sender is a sibling local-part (noreply@) instead of
-        # TradingAssistant@. Sender check must reject before the
-        # summary regex runs.
         email = {
             "subject": "BOUGHT 100 MRNA @ 108.31 (UXXX6864)",
             "body": "BOUGHT 100 MRNA @ 108.31 (UXXX6864)\n",
@@ -102,8 +94,6 @@ class TestIBKRParserCanParse:
         assert self.parser.can_parse(email) is False
 
     def test_cannot_parse_from_sibling_domain(self):
-        # ibkr.com is a sibling corporate domain but fill emails are
-        # only sent from interactivebrokers.com.
         email = {
             "subject": "BOUGHT 100 MRNA @ 108.31 (UXXX6864)",
             "body": "",
@@ -114,10 +104,6 @@ class TestIBKRParserCanParse:
         assert self.parser.can_parse(email) is False
 
     def test_can_parse_sender_is_case_sensitive(self):
-        # The match is byte-for-byte exact. Any deviation in casing of
-        # the local-part or domain is rejected — IBKR's MTAs always
-        # render the address as-is, so a re-cased address means a
-        # spoofed sender.
         email = {
             "subject": "BOUGHT 1 MRNA @ 100.00 (UXXX6864)",
             "body": "",
@@ -128,7 +114,6 @@ class TestIBKRParserCanParse:
         assert self.parser.can_parse(email) is False
 
     def test_can_parse_exact_canonical_address(self):
-        # Positive control: the exact address IBKR uses.
         email = {
             "subject": "BOUGHT 1 MRNA @ 100.00 (UXXX6864)",
             "body": "",
@@ -139,8 +124,6 @@ class TestIBKRParserCanParse:
         assert self.parser.can_parse(email) is True
 
     def test_cannot_parse_with_trailing_address_junk(self):
-        # Defensive: a stray display-name appendage (rare, but possible
-        # after forwarding) must not match the strict sender check.
         email = {
             "subject": "BOUGHT 1 MRNA @ 100.00 (UXXX6864)",
             "body": "",
@@ -190,7 +173,6 @@ class TestIBKRParserParse:
         assert "exchange=NASDAQ" in result.description
 
     def test_parse_minimal_subject_only(self):
-        # No body — parser should still extract from the subject line.
         email = {
             "subject": "BOUGHT 50 AAPL @ 195.40 (U1234567)",
             "body": "",
@@ -207,7 +189,6 @@ class TestIBKRParserParse:
         assert result.account_id == "U1234567"
 
     def test_parse_lowercase_buy_keyword(self):
-        # Defensive: confirm the regex tolerates lowercase side too.
         email = {
             "subject": "bought 5 VTI @ 245.10 (UXXX6864)",
             "body": "",
