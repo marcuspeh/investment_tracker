@@ -1,0 +1,15 @@
+Subject: SOLD 10 SGOV @ 100.5805 (UXXX6864)
+From: TradingAssistant@interactivebrokers.com
+To: ('user@example.com',)
+Date: 2026-08-21 14:02:55+00:00
+
+SOLD 10 SGOV @ 100.5805 (UXXX6864)
+
+Trade Date/Time: 2026-08-21, 14:02:55
+Symbol: SGOV
+Quantity: 10
+Trade Price: 100.5805
+Side: SOLD
+Order Type: Limit
+Account: UXXX6864
+Exchange: NYSE

@@ -1,0 +1,12 @@
+Subject: Your margin requirement has changed
+From: TradingAssistant@interactivebrokers.com
+To: ('user@example.com',)
+Date: 2026-08-22 09:00:00+00:00
+
+Dear client,
+
+Your margin requirement for account UXXX6864 has changed.
+Please review your account portal for the latest values.
+
+--
+Interactive Brokers

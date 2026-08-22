@@ -1,0 +1,15 @@
+Subject: BOUGHT 25.5 VOO @ 478.20 (UXXX6864)
+From: TradingAssistant@interactivebrokers.com
+To: ('user@example.com',)
+Date: 2026-08-15 13:00:00+00:00
+
+BOUGHT 25.5 VOO @ 478.20 (UXXX6864)
+
+Trade Date/Time: 2026-08-15, 13:00:00
+Symbol: VOO
+Quantity: 25.5
+Trade Price: 478.20
+Side: BOUGHT
+Order Type: Market
+Account: UXXX6864
+Exchange: NYSE

@@ -1,0 +1,18 @@
+Subject: BOUGHT 100 MRNA @ 108.31 (UXXX6864)
+From: TradingAssistant@interactivebrokers.com
+To: ('user@example.com',)
+Date: 2026-08-22 09:35:12+00:00
+
+BOUGHT 100 MRNA @ 108.31 (UXXX6864)
+
+Trade Date/Time: 2026-08-22, 09:35:12
+Symbol: MRNA
+Quantity: 100
+Trade Price: 108.31
+Side: BOUGHT
+Order Type: Market
+Account: UXXX6864
+Exchange: NASDAQ
+
+--
+Interactive Brokers
