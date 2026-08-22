@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  investment-tracker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: investment-tracker:latest
+    container_name: investment-tracker
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Singapore
+    env_file:
+      - .env
+    networks:
+      - investment-tracker-net
+
+networks:
+  investment-tracker-net:
+    external: true
