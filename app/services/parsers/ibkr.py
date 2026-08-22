@@ -22,11 +22,11 @@ We rely on the summary line (Subject + body both work) to extract
 side/quantity/symbol/price/account, and use the email's ``Date:`` header
 (or any explicit Trade Date/Time line in the body) as the trade timestamp.
 
-The parser claims emails where ``from`` is
-``TradingAssistant@interactivebrokers.com`` (or the subject/body contains
-"interactivebrokers"). Non-fill emails from the same sender (margin
-notifications, dividend notices) are rejected by requiring the summary
-regex to match before declaring the email a fill.
+The parser claims emails whose ``from`` header is exactly
+``TradingAssistant@interactivebrokers.com``. The IBKR domain sends other
+notification types (margin, dividend, marketing) from different
+local-parts (``noreply@``, ``donotreply@``, etc.) — those are rejected by
+the sender check before the summary regex even runs.
 """
 
 import re
@@ -37,12 +37,15 @@ from typing import Any
 from app.services.parsers.base import BaseParser, ParsedTrade, ParserError
 from app.utils.timezone import SGT, UTC
 
-#: Sender domain for IBKR auto-trade-emails. The local-part can vary
-#: ("TradingAssistant" is the most common but IBKR has rotated it).
-IBKR_FROM_KEYWORDS = (
-    "interactivebrokers.com",
-    "ibkr.com",
-)
+#: Exact sender for IBKR fill notification emails. IBKR sends fills only
+#: from ``TradingAssistant@interactivebrokers.com`` — the same domain
+#: also sends marketing/margin/dividend emails from other local-parts
+#: (e.g. ``noreply``, ``donotreply``), so we match the local-part too.
+#:
+#: Comparison is case-sensitive and whitespace-trimmed; IBKR's
+#: ``From:`` header always carries the address verbatim, so a
+#: byte-for-byte match is the right strictness.
+IBKR_FROM_ADDRESS = "tradingassistant@interactivebrokers.com"
 
 #: Summary line pattern. Captures (side, quantity, symbol, price, account_id).
 #: Group 1: BOUGHT / SOLD
@@ -86,11 +89,11 @@ class IBKRParser(BaseParser):
         from_ = (email.get("from", "") or "").lower()
         subject = email.get("subject", "") or ""
         body = email.get("body", "") or ""
-        sender_match = any(kw in from_ for kw in IBKR_FROM_KEYWORDS)
-        if not sender_match:
-            # Fallback: subject explicitly mentions IBKR.
-            if "interactive brokers" not in subject.lower() and "ibkr" not in subject.lower():
-                return False
+        # Sender must be exactly TradingAssistant@interactivebrokers.com —
+        # case-sensitive, byte-for-byte. Other local-parts on the same
+        # domain are margin/dividend/marketing emails — never fills.
+        if from_ != IBKR_FROM_ADDRESS:
+            return False
         # Final discriminator: must contain a BOUGHT/SOLD summary line.
         return self._find_summary(subject, body) is not None
 

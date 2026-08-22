@@ -79,8 +79,75 @@ class TestIBKRParserCanParse:
         assert self.parser.can_parse(email) is False
 
     def test_cannot_parse_margin_notice_from_ibkr(self):
-        # Same sender domain, but no BOUGHT/SOLD summary line.
+        # Margin notices come from a different local-part on the IBKR
+        # domain (noreply@), not TradingAssistant@. The parser must
+        # reject based on sender alone — the body has no fill line, but
+        # we shouldn't even get there.
         email = _parse_email(_load("IBKR margin notice.txt"))
+        assert email["from"] == "noreply@interactivebrokers.com"
+        assert self.parser.can_parse(email) is False
+
+    def test_cannot_parse_when_sender_local_part_differs(self):
+        # Subject contains a valid BOUGHT/SOLD summary line, but the
+        # sender is a sibling local-part (noreply@) instead of
+        # TradingAssistant@. Sender check must reject before the
+        # summary regex runs.
+        email = {
+            "subject": "BOUGHT 100 MRNA @ 108.31 (UXXX6864)",
+            "body": "BOUGHT 100 MRNA @ 108.31 (UXXX6864)\n",
+            "from": "noreply@interactivebrokers.com",
+            "to": ["user@example.com"],
+            "cc": [],
+        }
+        assert self.parser.can_parse(email) is False
+
+    def test_cannot_parse_from_sibling_domain(self):
+        # ibkr.com is a sibling corporate domain but fill emails are
+        # only sent from interactivebrokers.com.
+        email = {
+            "subject": "BOUGHT 100 MRNA @ 108.31 (UXXX6864)",
+            "body": "",
+            "from": "TradingAssistant@ibkr.com",
+            "to": ["user@example.com"],
+            "cc": [],
+        }
+        assert self.parser.can_parse(email) is False
+
+    def test_can_parse_sender_is_case_sensitive(self):
+        # The match is byte-for-byte exact. Any deviation in casing of
+        # the local-part or domain is rejected — IBKR's MTAs always
+        # render the address as-is, so a re-cased address means a
+        # spoofed sender.
+        email = {
+            "subject": "BOUGHT 1 MRNA @ 100.00 (UXXX6864)",
+            "body": "",
+            "from": "TRADINGASSISTANT@INTERACTIVEBROKERS.COM",
+            "to": ["user@example.com"],
+            "cc": [],
+        }
+        assert self.parser.can_parse(email) is False
+
+    def test_can_parse_exact_canonical_address(self):
+        # Positive control: the exact address IBKR uses.
+        email = {
+            "subject": "BOUGHT 1 MRNA @ 100.00 (UXXX6864)",
+            "body": "",
+            "from": "TradingAssistant@interactivebrokers.com",
+            "to": ["user@example.com"],
+            "cc": [],
+        }
+        assert self.parser.can_parse(email) is True
+
+    def test_cannot_parse_with_trailing_address_junk(self):
+        # Defensive: a stray display-name appendage (rare, but possible
+        # after forwarding) must not match the strict sender check.
+        email = {
+            "subject": "BOUGHT 1 MRNA @ 100.00 (UXXX6864)",
+            "body": "",
+            "from": "TradingAssistant@interactivebrokers.com via Gmail",
+            "to": ["user@example.com"],
+            "cc": [],
+        }
         assert self.parser.can_parse(email) is False
 
 
